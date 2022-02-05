@@ -3,3 +3,5 @@
 *.epf
 *.bsl
 *.txt
+
+.vscode

@@ -2,7 +2,6 @@ package v8parser
 
 import (
 	"encoding/binary"
-	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -21,23 +20,13 @@ type v8address uint32
 // Распаковывает файл контейнера
 
 func UnpackFile(file *os.File) {
-	ReadHeader(file)
-	index := ReadIndex(file)
+	container := ReadContainer(file)
+	// metadataType := container.MetadataType()
 
-	fmt.Printf("root: %d\n", index["root"])
+	// fmt.Printf("Metadata Type: %s\n", metadataType)
 
-	// rootAddress := index["root"]
-	// rootData := ReadContent(file, rootAddress)
-
-	rootAddress := index["89600866-af5c-433e-b42b-4f8e8565452a"]
-	rootData := ReadContent(file, rootAddress)
-
-	// rootList := new(List)
-	// rootList.Read(rootData)
-
-	ReadList(rootData)
-
-	// fmt.Printf("ROOT: %s\n", rootData)
+	// container.metadata.Print()
+	container.metadata.Get(3).Get(1).Print()
 }
 
 // Читает фрагмент файла по адресу
