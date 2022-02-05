@@ -1,4 +1,4 @@
-package v8parser
+package v8unpacker
 
 import (
 	"encoding/binary"

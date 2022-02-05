@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/goboden/v8parser/pkg/v8parser"
+	"github.com/goboden/v8parser/pkg/v8unpacker"
 )
 
 func main() {
@@ -19,6 +19,6 @@ func ReadFile(filename string) {
 	}
 	defer file.Close()
 
-	v8parser.UnpackFile(file)
+	v8unpacker.UnpackFile(file)
 
 }
