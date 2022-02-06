@@ -84,6 +84,17 @@ func (l *ListTree) Get(index int) *ListTree {
 	return &element
 }
 
+func (l *ListTree) GetChain(index ...int) *ListTree {
+	rl := l
+
+	if len(index) > 0 {
+		for _, i := range index {
+			rl = rl.Get(i)
+		}
+	}
+	return rl
+}
+
 func (l *ListTree) Value() string {
 	// if !l.isValue {
 	// 	return "", errors.New("element is a list, not a value")

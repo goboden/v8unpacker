@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -26,15 +25,24 @@ func ReadFile(filename string) {
 
 	cont := v8unpacker.ReadRootContainer(reader)
 
-	metadataType := cont.MetadataType()
-
-	fmt.Printf("Metadata Type: %s\n", metadataType)
-
 	// cont.Metadata.Print()
 	// cont.Metadata.Get(3).Print()
 
 	// cont.Metadata.Get(3).Get(1).Print()
-	cont.GetForms()
+
+	// forms, _ := cont.GetForms()
+	// for key, value := range forms {
+	// 	fmt.Println(key)
+	// 	fmt.Println(value)
+	// }
+	// cont.GetForms()
+
+	fn := cont.Metadata.GetChain(3, 1, 1, 3, 1, 1, 2).Value()
+	m := cont.FileAsContent(fn+".0", true)
+	bReader := v8unpacker.NewBytesReader([]byte(m))
+	contM := v8unpacker.ReadContainer(bReader)
+	// fmt.Println(contM.FileAsContent("text", false))
+	contM.SaveFile("text", "M.bsl", false)
 
 	// cont := v8unpacker.ReadContainer(reader)
 	// cont.PrintIndex()

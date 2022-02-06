@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 )
 
 const (
@@ -61,8 +62,8 @@ func (c *Container) FileAsListTree(name string, deflate bool) *ListTree {
 	return list
 }
 
-func (c *Container) SaveFile(name string, filename string) {
-	content := c.FileAsContent(name, true)
+func (c *Container) SaveFile(name string, filename string, deflate bool) {
+	content := c.FileAsContent(name, deflate)
 
 	err := os.WriteFile(filename, []byte(content), 0666)
 	if err != nil {
@@ -99,23 +100,21 @@ func (c *RootContainer) GetForms() (map[string]string, error) {
 			}
 
 			if sect.Get(0).Value() == formsID && sect.Length() > 2 {
-				// forms := make(map[string]string, 0)
+				forms := make(map[string]string, 0)
 				for n := 2; n < sect.Length(); n++ {
 					indexName := sect.Get(n).Value()
-					fmt.Println("---------- ", indexName)
-					// c.FileAsListTree(indexName).Print()
 
 					formName := c.FileAsListTree(indexName, true).Get(1).Get(1).Get(1).Get(1).Get(2).Value()
-					fmt.Println(formName)
-
-					// fmt.Println(c.FileAsContent(indexName + ".0"))
-					// c.FileAsListTree(indexName + ".0").Print()
+					formName = strings.Trim(formName, `"`)
 
 					reader := NewBytesReader([]byte(c.FileAsContent(indexName+".0", true)))
 					formsC := ReadContainer(reader)
-					formsC.PrintIndex()
 
+					formModule := formsC.FileAsContent("module", false)
+					forms[formName] = formModule
+					formsC.SaveFile("module", formName+".bsl", false)
 				}
+				return forms, nil
 			}
 		}
 	}
