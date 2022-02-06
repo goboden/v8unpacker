@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/flate"
 	"fmt"
-	"os"
 )
 
 const blockHeaderLength = 31
@@ -17,13 +16,13 @@ type v8blockHeader struct {
 
 // Читает документ по блокам
 
-func ReadDocument(file *os.File, begin v8address) []byte {
+func ReadDocument(reader Reader, begin v8address) []byte {
 	documentData := make([]byte, 0)
 	documentLength := v8address(0)
 
 	next := begin
 	for {
-		header, data := ReadBlock(file, next)
+		header, data := ReadBlock(reader, next)
 
 		if header.DocumentLength != 0 {
 			documentLength = header.DocumentLength
@@ -42,8 +41,8 @@ func ReadDocument(file *os.File, begin v8address) []byte {
 
 // Читает блок
 
-func ReadBlock(file *os.File, begin v8address) (*v8blockHeader, []byte) {
-	header := ReadFileFragment(file, begin, blockHeaderLength)
+func ReadBlock(reader Reader, begin v8address) (*v8blockHeader, []byte) {
+	header := reader.ReadFragment(begin, blockHeaderLength)
 
 	if header[0] != 13 {
 		panic(fmt.Sprintf("! %d", header[0]))
@@ -55,22 +54,22 @@ func ReadBlock(file *os.File, begin v8address) (*v8blockHeader, []byte) {
 	blockHeader.BlockLength = ConvertAddress(header[11:19])
 	blockHeader.NextBlock = ConvertAddress(header[20:28])
 
-	data := ReadFileFragment(file, begin+blockHeaderLength, blockHeader.BlockLength)
+	data := reader.ReadFragment(begin+blockHeaderLength, blockHeader.BlockLength)
 
 	return blockHeader, data
 }
 
 // Читает и распаковывает документ содержимого
 
-func ReadContent(file *os.File, begin v8address) string {
-	data := ReadDocument(file, begin)
+func ReadContentOld(reader Reader, begin v8address) string {
+	data := ReadDocument(reader, begin)
 
-	reader := flate.NewReader(bytes.NewReader(data))
+	deflator := flate.NewReader(bytes.NewReader(data))
 	buffer := make([]byte, 1024)
 	out := make([]byte, 0)
 
 	for {
-		n, _ := reader.Read(buffer)
+		n, _ := deflator.Read(buffer)
 		if n < len(buffer) {
 			out = append(out, buffer[:n]...)
 			break
@@ -79,4 +78,29 @@ func ReadContent(file *os.File, begin v8address) string {
 	}
 
 	return string(out)
+}
+
+func ReadContent(reader Reader, begin v8address, deflate bool) string {
+	var content string
+	data := ReadDocument(reader, begin)
+
+	if deflate {
+		reader := flate.NewReader(bytes.NewReader(data))
+		buffer := make([]byte, 1024)
+		out := make([]byte, 0)
+
+		for {
+			n, _ := reader.Read(buffer)
+			if n < len(buffer) {
+				out = append(out, buffer[:n]...)
+				break
+			}
+			out = append(out, buffer...)
+		}
+		content = string(out)
+	} else {
+		content = string(data)
+	}
+
+	return content
 }

@@ -47,28 +47,27 @@ func (l *ListTree) Length() int {
 	return len(l.elements)
 }
 
-func (l *ListTree) Print(levels ...int) {
+func (l *ListTree) Print(params ...int) {
 	if l.isValue {
-		fmt.Printf("[%2d.%2d] %s%s\n", 0, 0, strings.Repeat(". ", 0), l.Value())
+		fmt.Printf("[%2d] %s\n", 0, l.Value())
 		return
 	}
+	printElement(l, "", 0)
+}
 
-	level := 0
-	if len(levels) != 0 {
-		level = levels[0]
-	} else {
-		fmt.Printf("LEVELS: %d\n", len(l.elements))
-	}
-
+func printElement(l *ListTree, prefix string, level int) {
 	next := level + 1
-
 	for i, item := range l.elements {
+		levelPrefix := fmt.Sprintf("%s%2d", prefix, i)
 		if item.isValue {
-			fmt.Printf("[%2d.%2d] %s%s\n", level, i, strings.Repeat(". ", level), item.Value())
+			// itemValue := fmt.Sprintf("%d", []byte(item.Value()))
+			itemValue := item.Value()
+			fmt.Printf("[%s] %s|%s%s\n", levelPrefix, strings.Repeat(".  ", 10-level), strings.Repeat(".  ", level), itemValue)
 			continue
 		}
-		fmt.Printf("[%2d.%2d] %s%s\n", level, i, strings.Repeat(". ", level), "+")
-		item.Print(next)
+		// fmt.Printf("[%s] %s%s\n", levelPrefix, strings.Repeat(". ", level), "+")
+		nextPrefix := fmt.Sprintf("%s.", levelPrefix)
+		printElement(&item, nextPrefix, next)
 	}
 }
 
@@ -107,11 +106,11 @@ func ReadListTreeData(data string, list *ListTree) {
 	data = strings.Trim(data, "{")
 	data = strings.Trim(data, "}")
 
-	ch := ReadSection(data, 0, list)
+	ch := readSection(data, 0, list)
 	<-ch
 }
 
-func ReadSection(data string, level int, list *ListTree) <-chan string {
+func readSection(data string, level int, list *ListTree) <-chan string {
 
 	level++
 	outCh := make(chan string)
@@ -130,7 +129,7 @@ func ReadSection(data string, level int, list *ListTree) <-chan string {
 
 				element := NewListTree()
 
-				inCh := ReadSection(data, level, element)
+				inCh := readSection(data, level, element)
 				data = <-inCh
 
 				list.AppendElement(element)

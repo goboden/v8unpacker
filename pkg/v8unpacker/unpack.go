@@ -17,27 +17,17 @@ const INT_MAX = 2147483647
 
 type v8address uint32
 
-// Распаковывает файл контейнера
-
-func UnpackFile(file *os.File) {
-	container := ReadContainer(file)
-	// metadataType := container.MetadataType()
-
-	// fmt.Printf("Metadata Type: %s\n", metadataType)
-
-	// container.metadata.Print()
-	container.metadata.Get(3).Get(1).Print()
+type FileReader struct {
+	file *os.File
 }
 
-// Читает фрагмент файла по адресу
-
-func ReadFileFragment(file *os.File, begin v8address, length v8address) []byte {
-	file.Seek(int64(begin), 0)
+func (reader *FileReader) ReadFragment(begin v8address, length v8address) []byte {
+	reader.file.Seek(int64(begin), 0)
 	bufLength := v8address(length)
 
 	buf := make([]byte, bufLength)
 	for i := v8address(1); true; i++ {
-		n, err := file.Read(buf)
+		n, err := reader.file.Read(buf)
 
 		if n > 0 {
 			return buf
@@ -54,6 +44,32 @@ func ReadFileFragment(file *os.File, begin v8address, length v8address) []byte {
 	}
 
 	return buf
+}
+
+type BytesReader struct {
+	data []byte
+}
+
+func (reader *BytesReader) ReadFragment(begin v8address, length v8address) []byte {
+	buf := reader.data[begin : begin+length]
+	// println(len(reader.data))
+	return buf
+}
+
+type Reader interface {
+	ReadFragment(v8address, v8address) []byte
+}
+
+func NewFileReader(file *os.File) *FileReader {
+	reader := new(FileReader)
+	reader.file = file
+	return reader
+}
+
+func NewBytesReader(data []byte) *BytesReader {
+	reader := new(BytesReader)
+	reader.data = data
+	return reader
 }
 
 // Коневертирует имя файла из UTF16
