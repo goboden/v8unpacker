@@ -1,24 +1,25 @@
 package v8unpacker
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
 
 const (
-	ExtProcID = "c3831ec8-d8d5-4f93-8a22-f9bfae07327f"
-	ExtReptID = "e41aff26-25cf-4bb6-b6c1-3f478a75f374"
-	ConfID    = "9cd510cd-abfc-11d4-9434-004095e12fc7" // ?
+	extProcID = "c3831ec8-d8d5-4f93-8a22-f9bfae07327f"
+	extReptID = "e41aff26-25cf-4bb6-b6c1-3f478a75f374"
+	confID    = "9cd510cd-abfc-11d4-9434-004095e12fc7" // ?
 
-	ExtProcAttributes = "ec6bb5e5-b7a8-4d75-bec9-658107a699cf"
-	ExtProcTables     = "2bcef0d1-0981-11d6-b9b8-0050bae0a95d"
-	ExtProcForms      = "d5b0e5ed-256d-401c-9c36-f630cafd8a62"
-	ExtProcTemplates  = "3daea016-69b7-4ed4-9453-127911372fe6"
+	extProcAttributes = "ec6bb5e5-b7a8-4d75-bec9-658107a699cf"
+	extProcTables     = "2bcef0d1-0981-11d6-b9b8-0050bae0a95d"
+	extProcForms      = "d5b0e5ed-256d-401c-9c36-f630cafd8a62"
+	extProcTemplates  = "3daea016-69b7-4ed4-9453-127911372fe6"
 
-	ExtReptAttributes = "7e7123e0-29e2-11d6-a3c7-0050bae0a776"
-	ExtReptTables     = "b077d780-29e2-11d6-a3c7-0050bae0a776"
-	ExtReptForms      = "a3b368c0-29e2-11d6-a3c7-0050bae0a776"
-	ExtReptTemplates  = "3daea016-69b7-4ed4-9453-127911372fe6"
+	extReptAttributes = "7e7123e0-29e2-11d6-a3c7-0050bae0a776"
+	extReptTables     = "b077d780-29e2-11d6-a3c7-0050bae0a776"
+	extReptForms      = "a3b368c0-29e2-11d6-a3c7-0050bae0a776"
+	extReptTemplates  = "3daea016-69b7-4ed4-9453-127911372fe6"
 )
 
 type ListTree struct {
@@ -49,58 +50,39 @@ func (l *ListTree) Length() int {
 
 func (l *ListTree) Print(params ...int) {
 	if l.isValue {
-		fmt.Printf("[%2d] %s\n", 0, l.Value())
+		fmt.Printf("[%2d] %s\n", 0, l.value)
 		return
 	}
 	printElement(l, "", 0)
 }
 
-func printElement(l *ListTree, prefix string, level int) {
-	next := level + 1
-	for i, item := range l.elements {
-		levelPrefix := fmt.Sprintf("%s%2d", prefix, i)
-		if item.isValue {
-			// itemValue := fmt.Sprintf("%d", []byte(item.Value()))
-			itemValue := item.Value()
-			fmt.Printf("[%s] %s|%s%s\n", levelPrefix, strings.Repeat(".  ", 10-level), strings.Repeat(".  ", level), itemValue)
-			continue
-		}
-		// fmt.Printf("[%s] %s%s\n", levelPrefix, strings.Repeat(". ", level), "+")
-		nextPrefix := fmt.Sprintf("%s.", levelPrefix)
-		printElement(&item, nextPrefix, next)
+func (l *ListTree) Get(index ...int) (*ListTree, error) {
+	if len(index) == 0 {
+		return nil, errors.New("null index")
 	}
-}
 
-func (l *ListTree) Get(index int) *ListTree {
-	// if l.isValue {
-	// 	return nil, errors.New("element is a value, not a list")
-	// }
-	// if index >= len(l.elements) {
-	// 	return nil, fmt.Errorf("index %d is out of range %d", index, len(l.elements))
-	// }
-	// element := l.elements[index]
-	// return &element, nil
-	element := l.elements[index]
-	return &element
-}
-
-func (l *ListTree) GetChain(index ...int) *ListTree {
 	rl := l
-
-	if len(index) > 0 {
-		for _, i := range index {
-			rl = rl.Get(i)
+	for _, i := range index {
+		if len(rl.elements) < i {
+			return nil, fmt.Errorf("inxdex %d is out of range %d", i, len(rl.elements))
 		}
+		rl = &rl.elements[i]
 	}
-	return rl
+
+	return rl, nil
 }
 
-func (l *ListTree) Value() string {
-	// if !l.isValue {
-	// 	return "", errors.New("element is a list, not a value")
-	// }
-	// return l.value, nil
-	return l.value
+func (l *ListTree) GetValue(index ...int) (string, error) {
+	rl, err := l.Get(index...)
+	if err != nil {
+		return "", err
+	}
+
+	if !rl.isValue {
+		return "", errors.New("element is not a value")
+	}
+
+	return rl.value, nil
 }
 
 func NewListTree() *ListTree {
@@ -110,6 +92,22 @@ func NewListTree() *ListTree {
 	list.elements = make([]ListTree, 0)
 
 	return list
+}
+
+func printElement(l *ListTree, prefix string, level int) {
+	next := level + 1
+	for i, item := range l.elements {
+		levelPrefix := fmt.Sprintf("%s%2d", prefix, i)
+		if item.isValue {
+			// itemValue := fmt.Sprintf("%d", []byte(item.Value()))
+			itemValue := item.value
+			fmt.Printf("[%s] %s|%s%s\n", levelPrefix, strings.Repeat(".  ", 10-level), strings.Repeat(".  ", level), itemValue)
+			continue
+		}
+		// fmt.Printf("[%s] %s%s\n", levelPrefix, strings.Repeat(". ", level), "+")
+		nextPrefix := fmt.Sprintf("%s.", levelPrefix)
+		printElement(&item, nextPrefix, next)
+	}
 }
 
 func ReadListTreeData(data string, list *ListTree) {
@@ -122,7 +120,6 @@ func ReadListTreeData(data string, list *ListTree) {
 }
 
 func readSection(data string, level int, list *ListTree) <-chan string {
-
 	level++
 	outCh := make(chan string)
 

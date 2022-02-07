@@ -9,10 +9,6 @@ import (
 	"unicode/utf16"
 )
 
-// https://infostart.ru/1c/articles/250142/
-// https://infostart.ru/public/106310/
-// https://github.com/e8tools/v8unpack
-
 const INT_MAX = 2147483647
 
 type v8address uint32
@@ -52,7 +48,6 @@ type BytesReader struct {
 
 func (reader *BytesReader) ReadFragment(begin v8address, length v8address) []byte {
 	buf := reader.data[begin : begin+length]
-	// println(len(reader.data))
 	return buf
 }
 
@@ -72,9 +67,7 @@ func NewBytesReader(data []byte) *BytesReader {
 	return reader
 }
 
-// Коневертирует имя файла из UTF16
-
-func ConvertFilename(filenameUTF16 []byte) string {
+func convertFilename(filenameUTF16 []byte) string {
 	utf := make([]uint16, len(filenameUTF16)/2)
 	for i := 0; i < len(filenameUTF16); i += 2 {
 		utf[(i / 2)] = binary.LittleEndian.Uint16(filenameUTF16[i:])
@@ -85,9 +78,7 @@ func ConvertFilename(filenameUTF16 []byte) string {
 	return filename
 }
 
-// Конвертирует адрес из заголовка блока
-
-func ConvertAddress(b []byte) v8address {
+func convertAddress(b []byte) v8address {
 	bytes := ""
 	for _, v := range b {
 		bytes += string(v)

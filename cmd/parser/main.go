@@ -37,12 +37,12 @@ func ReadFile(filename string) {
 	// }
 	// cont.GetForms()
 
-	fn := cont.Metadata.GetChain(3, 1, 1, 3, 1, 1, 2).Value()
+	fn, _ := cont.Metadata.GetValue(3, 1, 1, 3, 1, 1, 2)
 	m := cont.FileAsContent(fn+".0", true)
 	bReader := v8unpacker.NewBytesReader([]byte(m))
 	contM := v8unpacker.ReadContainer(bReader)
 	// fmt.Println(contM.FileAsContent("text", false))
-	contM.SaveFile("text", "M.bsl", false)
+	contM.SaveFile("text", "МодульОбъекта.bsl", false)
 
 	// cont := v8unpacker.ReadContainer(reader)
 	// cont.PrintIndex()

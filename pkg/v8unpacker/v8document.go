@@ -14,15 +14,13 @@ type v8blockHeader struct {
 	NextBlock      v8address
 }
 
-// Читает документ по блокам
-
-func ReadDocument(reader Reader, begin v8address) []byte {
+func readDocument(reader Reader, begin v8address) []byte {
 	documentData := make([]byte, 0)
 	documentLength := v8address(0)
 
 	next := begin
 	for {
-		header, data := ReadBlock(reader, next)
+		header, data := readBlock(reader, next)
 
 		if header.DocumentLength != 0 {
 			documentLength = header.DocumentLength
@@ -39,9 +37,7 @@ func ReadDocument(reader Reader, begin v8address) []byte {
 	return documentData
 }
 
-// Читает блок
-
-func ReadBlock(reader Reader, begin v8address) (*v8blockHeader, []byte) {
+func readBlock(reader Reader, begin v8address) (*v8blockHeader, []byte) {
 	header := reader.ReadFragment(begin, blockHeaderLength)
 
 	if header[0] != 13 {
@@ -50,39 +46,18 @@ func ReadBlock(reader Reader, begin v8address) (*v8blockHeader, []byte) {
 
 	blockHeader := new(v8blockHeader)
 
-	blockHeader.DocumentLength = ConvertAddress(header[2:10])
-	blockHeader.BlockLength = ConvertAddress(header[11:19])
-	blockHeader.NextBlock = ConvertAddress(header[20:28])
+	blockHeader.DocumentLength = convertAddress(header[2:10])
+	blockHeader.BlockLength = convertAddress(header[11:19])
+	blockHeader.NextBlock = convertAddress(header[20:28])
 
 	data := reader.ReadFragment(begin+blockHeaderLength, blockHeader.BlockLength)
 
 	return blockHeader, data
 }
 
-// Читает и распаковывает документ содержимого
-
-func ReadContentOld(reader Reader, begin v8address) string {
-	data := ReadDocument(reader, begin)
-
-	deflator := flate.NewReader(bytes.NewReader(data))
-	buffer := make([]byte, 1024)
-	out := make([]byte, 0)
-
-	for {
-		n, _ := deflator.Read(buffer)
-		if n < len(buffer) {
-			out = append(out, buffer[:n]...)
-			break
-		}
-		out = append(out, buffer...)
-	}
-
-	return string(out)
-}
-
-func ReadContent(reader Reader, begin v8address, deflate bool) string {
+func readContent(reader Reader, begin v8address, deflate bool) string {
 	var content string
-	data := ReadDocument(reader, begin)
+	data := readDocument(reader, begin)
 
 	if deflate {
 		reader := flate.NewReader(bytes.NewReader(data))

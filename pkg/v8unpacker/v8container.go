@@ -32,14 +32,17 @@ type RootContainer struct {
 }
 
 func (c *RootContainer) MetadataType() int {
-	metadataID := c.Metadata.Get(3).Get(0).Value()
+	metadataID, err := c.Metadata.GetValue(3, 0)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	switch metadataID {
-	case ExtProcID:
+	case extProcID:
 		return META_TYPE_EXT_PROC
-	case ExtReptID:
+	case extReptID:
 		return META_TYPE_EXT_REPT
-	case ConfID:
+	case confID:
 		return META_TYPE_CONFIG
 	}
 	return META_TYPE_NOT_SUPP
@@ -47,7 +50,7 @@ func (c *RootContainer) MetadataType() int {
 
 func (c *Container) FileAsContent(name string, deflate bool) string {
 	address := c.index[name]
-	content := ReadContent(c.reader, address, deflate)
+	content := readContent(c.reader, address, deflate)
 
 	return content
 }
@@ -81,9 +84,9 @@ func (c *Container) PrintIndex() {
 func (c *RootContainer) formsID() string {
 	switch c.MetaType {
 	case META_TYPE_EXT_PROC:
-		return ExtProcForms
+		return extProcForms
 	case META_TYPE_EXT_REPT:
-		return ExtProcForms
+		return extReptForms
 	default:
 		return ""
 	}
@@ -91,20 +94,33 @@ func (c *RootContainer) formsID() string {
 
 func (c *RootContainer) GetForms() (map[string]string, error) {
 	formsID := c.formsID()
-	intList := c.Metadata.Get(3).Get(1)
+	intList, err := c.Metadata.Get(3, 1)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	if !intList.isValue {
 		for i := 0; i < intList.Length(); i++ {
-			sect := intList.Get(i)
+			sect, err := intList.Get(i)
+			if err != nil {
+				log.Fatal(err)
+			}
 			if sect.isValue {
 				continue
 			}
 
-			if sect.Get(0).Value() == formsID && sect.Length() > 2 {
+			if val, err := sect.GetValue(0); err != nil && val == formsID && sect.Length() > 2 {
 				forms := make(map[string]string, 0)
 				for n := 2; n < sect.Length(); n++ {
-					indexName := sect.Get(n).Value()
+					indexName, err := sect.GetValue(n)
+					if err != nil {
+						log.Fatal(err)
+					}
 
-					formName := c.FileAsListTree(indexName, true).Get(1).Get(1).Get(1).Get(1).Get(2).Value()
+					formName, err := c.FileAsListTree(indexName, true).GetValue(1, 1, 1, 1, 2)
+					if err != nil {
+						log.Fatal(err)
+					}
 					formName = strings.Trim(formName, `"`)
 
 					reader := NewBytesReader([]byte(c.FileAsContent(indexName+".0", true)))
@@ -125,8 +141,8 @@ func ReadContainer(reader Reader) *Container {
 	cont := new(Container)
 
 	cont.reader = reader
-	cont.header = ReadHeader(reader)
-	cont.index = ReadIndex(reader)
+	cont.header = readHeader(reader)
+	cont.index = readIndex(reader)
 
 	return cont
 }
@@ -135,11 +151,15 @@ func ReadRootContainer(reader Reader) *RootContainer {
 	cont := new(RootContainer)
 
 	cont.reader = reader
-	cont.header = ReadHeader(reader)
-	cont.index = ReadIndex(reader)
+	cont.header = readHeader(reader)
+	cont.index = readIndex(reader)
 
 	rootList := cont.FileAsListTree("root", true)
-	metadata := cont.FileAsListTree(rootList.Get(1).Value(), true)
+	metaFileName, err := rootList.GetValue(1)
+	if err != nil {
+		log.Fatal(err)
+	}
+	metadata := cont.FileAsListTree(metaFileName, true)
 	cont.Metadata = *metadata
 
 	cont.MetaType = cont.MetadataType()
@@ -149,17 +169,15 @@ func ReadRootContainer(reader Reader) *RootContainer {
 
 // Читает заголовок контейнера
 
-func ReadHeader(reader Reader) []byte {
+func readHeader(reader Reader) []byte {
 	headerBegin := v8address(0)
 
 	header := reader.ReadFragment(headerBegin, сontainerHeaderLength)
 	return header
 }
 
-// Читает оглавление контейнера
-
-func ReadIndex(reader Reader) fileIndex {
-	data := ReadDocument(reader, сontainerHeaderLength)
+func readIndex(reader Reader) fileIndex {
+	data := readDocument(reader, сontainerHeaderLength)
 	index := make(fileIndex, 0)
 
 	length := v8address(len(data))
@@ -167,8 +185,8 @@ func ReadIndex(reader Reader) fileIndex {
 		attributes := v8address(binary.LittleEndian.Uint32(data[i:(i + 4)]))
 		content := v8address(binary.LittleEndian.Uint32(data[(i + 4):(i + 8)]))
 
-		attrData := ReadDocument(reader, attributes)
-		filename := ConvertFilename(attrData[20:])
+		attrData := readDocument(reader, attributes)
+		filename := convertFilename(attrData[20:])
 
 		index[filename] = content
 	}
