@@ -128,7 +128,7 @@ func (c *RootContainer) GetForms() (map[string]string, error) {
 
 					formModule := formsC.FileAsContent("module", false)
 					forms[formName] = formModule
-					formsC.SaveFile("module", formName+".bsl", false)
+					formsC.SaveFile("module", formName+"1.bsl", false)
 				}
 				return forms, nil
 			}
