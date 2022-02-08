@@ -9,8 +9,6 @@ import (
 	"unicode/utf16"
 )
 
-const INT_MAX = 2147483647
-
 type v8address uint32
 
 type FileReader struct {

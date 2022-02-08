@@ -11,10 +11,10 @@ import (
 const (
 	сontainerHeaderLength = v8address(16)
 
-	META_TYPE_NOT_SUPP = 0
-	META_TYPE_EXT_PROC = 1
-	META_TYPE_EXT_REPT = 2
-	META_TYPE_CONFIG   = 3
+	mdTypeNotSupported  = 0
+	mdTypeExtProcedure  = 1
+	mdTypeExtReport     = 2
+	mdTypeConfiguration = 3
 )
 
 type fileIndex map[string]v8address
@@ -38,14 +38,14 @@ func (c *RootContainer) MetadataType() int {
 	}
 
 	switch metadataID {
-	case extProcID:
-		return META_TYPE_EXT_PROC
-	case extReptID:
-		return META_TYPE_EXT_REPT
-	case confID:
-		return META_TYPE_CONFIG
+	case idExtProcedure:
+		return mdTypeExtProcedure
+	case idExtReport:
+		return mdTypeExtReport
+	case idConfiguration:
+		return mdTypeConfiguration
 	}
-	return META_TYPE_NOT_SUPP
+	return mdTypeNotSupported
 }
 
 func (c *Container) FileAsContent(name string, deflate bool) string {
@@ -83,9 +83,9 @@ func (c *Container) PrintIndex() {
 
 func (c *RootContainer) formsID() string {
 	switch c.MetaType {
-	case META_TYPE_EXT_PROC:
+	case mdTypeExtProcedure:
 		return extProcForms
-	case META_TYPE_EXT_REPT:
+	case mdTypeExtReport:
 		return extReptForms
 	default:
 		return ""

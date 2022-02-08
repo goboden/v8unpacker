@@ -6,7 +6,10 @@ import (
 	"fmt"
 )
 
-const blockHeaderLength = 31
+const (
+	blockHeaderLength = 31
+	intMax            = 2147483647
+)
 
 type v8blockHeader struct {
 	DocumentLength v8address
@@ -26,7 +29,7 @@ func readDocument(reader Reader, begin v8address) []byte {
 			documentLength = header.DocumentLength
 		}
 
-		if header.NextBlock == INT_MAX {
+		if header.NextBlock == intMax {
 			documentData = append(documentData, data[:(documentLength-v8address(len(documentData)))]...)
 			break
 		}

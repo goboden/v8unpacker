@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	extProcID = "c3831ec8-d8d5-4f93-8a22-f9bfae07327f"
-	extReptID = "e41aff26-25cf-4bb6-b6c1-3f478a75f374"
-	confID    = "9cd510cd-abfc-11d4-9434-004095e12fc7" // ?
+	idExtProcedure  = "c3831ec8-d8d5-4f93-8a22-f9bfae07327f"
+	idExtReport     = "e41aff26-25cf-4bb6-b6c1-3f478a75f374"
+	idConfiguration = "9cd510cd-abfc-11d4-9434-004095e12fc7" // ?
 
 	extProcAttributes = "ec6bb5e5-b7a8-4d75-bec9-658107a699cf"
 	extProcTables     = "2bcef0d1-0981-11d6-b9b8-0050bae0a95d"
