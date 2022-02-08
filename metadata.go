@@ -48,12 +48,11 @@ func (l *ListTree) Length() int {
 	return len(l.elements)
 }
 
-func (l *ListTree) Print(params ...int) {
+func (l *ListTree) ToString(params ...int) string {
 	if l.isValue {
-		fmt.Printf("[%2d] %s\n", 0, l.value)
-		return
+		return fmt.Sprintf("[%2d] %s\n", 0, l.value)
 	}
-	printElement(l, "", 0)
+	return elementToString(l, "", 0)
 }
 
 func (l *ListTree) Get(index ...int) (*ListTree, error) {
@@ -94,20 +93,22 @@ func NewListTree() *ListTree {
 	return list
 }
 
-func printElement(l *ListTree, prefix string, level int) {
+func elementToString(l *ListTree, prefix string, level int) string {
+	var elementString string
 	next := level + 1
 	for i, item := range l.elements {
 		levelPrefix := fmt.Sprintf("%s%2d", prefix, i)
 		if item.isValue {
 			// itemValue := fmt.Sprintf("%d", []byte(item.Value()))
 			itemValue := item.value
-			fmt.Printf("[%s] %s|%s%s\n", levelPrefix, strings.Repeat(".  ", 10-level), strings.Repeat(".  ", level), itemValue)
+			elementString += fmt.Sprintf("[%s] %s|%s%s\n", levelPrefix, strings.Repeat(".  ", 12-level), strings.Repeat(".  ", level), itemValue)
 			continue
 		}
 		// fmt.Printf("[%s] %s%s\n", levelPrefix, strings.Repeat(". ", level), "+")
 		nextPrefix := fmt.Sprintf("%s.", levelPrefix)
-		printElement(&item, nextPrefix, next)
+		elementString += elementToString(&item, nextPrefix, next)
 	}
+	return elementString
 }
 
 func ReadListTreeData(data string, list *ListTree) {
@@ -157,6 +158,8 @@ func readSection(data string, level int, list *ListTree) <-chan string {
 					value := data[0:d]
 					data = data[d:]
 
+					// println(">>>>>", value)
+
 					list.AppendValue(value)
 
 					continue
@@ -172,6 +175,21 @@ func readSection(data string, level int, list *ListTree) <-chan string {
 }
 
 func nextDelimeter(data string) int {
+	if data[0] == '"' {
+		for i := 1; i < len(data); i++ {
+			if data[i] == '"' {
+				if len(data)-i > 4 && data[i+1] == '"' && data[i+2] == '"' && data[i+3] == '"' {
+					i += 4
+					continue
+				}
+				if len(data)-i > 2 && data[i+1] == '"' {
+					i += 2
+					continue
+				}
+				return i + 1
+			}
+		}
+	}
 	for i := 0; i < len(data); i++ {
 		if data[i] == ',' || data[i] == '}' {
 			return i
