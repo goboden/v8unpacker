@@ -101,7 +101,7 @@ func elementToString(l *ListTree, prefix string, level int) string {
 		if item.isValue {
 			// itemValue := fmt.Sprintf("%d", []byte(item.Value()))
 			itemValue := item.value
-			elementString += fmt.Sprintf("[%s] %s|%s%s\n", levelPrefix, strings.Repeat(".  ", 12-level), strings.Repeat(".  ", level), itemValue)
+			elementString += fmt.Sprintf("[%s] %s|%s%s\n", levelPrefix, strings.Repeat(".  ", 15-level), strings.Repeat(".  ", level), itemValue)
 			continue
 		}
 		// fmt.Printf("[%s] %s%s\n", levelPrefix, strings.Repeat(". ", level), "+")
