@@ -170,11 +170,15 @@ func (c *RootContainer) findFormData(nameInIndex string) (string, string, error)
 	if err != nil {
 		return "", "", err
 	}
+
 	formName, isManaged, err := formInfo(formData)
 	if err != nil {
-		return "", "", fmt.Errorf("find form data: %s", err.Error())
+		// return "", "", fmt.Errorf("find form data: %s", err.Error())
+		formName = nameInIndex
+		isManaged = false
+	} else {
+		formName = strings.Trim(formName, `"`)
 	}
-	formName = strings.Trim(formName, `"`)
 
 	if !isManaged {
 		formContent, err := c.FileAsContent(nameInIndex+".0", true)
@@ -246,6 +250,7 @@ func ReadRootContainer(reader Reader) *RootContainer {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	metaFileName, err := rootList.GetValue(1)
 	if err != nil {
 		log.Fatal(err)
@@ -292,6 +297,7 @@ func formInfo(list *ListTree) (string, bool, error) {
 	if err != nil {
 		return "", false, fmt.Errorf("form info: %s", err.Error())
 	}
+
 	isManagedStr, err := list.GetValue(1, 1, 1, 3)
 	if err != nil {
 		return "", false, fmt.Errorf("form info: %s", err.Error())

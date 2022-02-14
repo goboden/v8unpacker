@@ -158,7 +158,12 @@ func readSection(data string, level int, list *ListTree) <-chan string {
 					value := data[0:d]
 					data = data[d:]
 
-					// println(">>>>>", value)
+					list.AppendValue(value)
+
+					continue
+				} else {
+					value := data
+					data = data[len(data):]
 
 					list.AppendValue(value)
 
