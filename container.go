@@ -221,12 +221,24 @@ func (c *RootContainer) findObjectModule() (string, error) {
 		return "", err
 	}
 
-	moduleContainer := ReadContainer(NewBytesReader([]byte(moduleData)))
-	moduleText, err := moduleContainer.FileAsContent("text", false)
+	moduleText, err := readObjectModuleText(moduleData)
 	if err != nil {
 		return "", err
 	}
+
 	return moduleText, nil
+}
+
+func readObjectModuleText(moduleData string) (string, error) {
+	if v8address(len(moduleData)) > сontainerHeaderLength {
+		moduleContainer := ReadContainer(NewBytesReader([]byte(moduleData)))
+		moduleText, err := moduleContainer.FileAsContent("text", false)
+		if err != nil {
+			return "", err
+		}
+		return moduleText, nil
+	}
+	return "", nil
 }
 
 func ReadContainer(reader Reader) *Container {
@@ -268,7 +280,6 @@ func ReadRootContainer(reader Reader) *RootContainer {
 
 func readHeader(reader Reader) []byte {
 	headerBegin := v8address(0)
-
 	header := reader.ReadFragment(headerBegin, сontainerHeaderLength)
 	return header
 }
