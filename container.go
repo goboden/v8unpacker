@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 )
 
@@ -136,7 +137,7 @@ func (c *RootContainer) findFormsSection() (*ListTree, error) {
 			continue
 		}
 
-		if val, err := sect.GetValue(0); err == nil && val == formsID && sect.Length() > 2 {
+		if val, err := sect.GetValue(0); err == nil && val == formsID {
 			return sect, nil
 		}
 	}
@@ -166,32 +167,24 @@ func (c *RootContainer) findFormsInSection(section *ListTree) (map[string]string
 }
 
 func (c *RootContainer) findFormData(nameInIndex string) (string, string, error) {
-	formData, err := c.FileAsListTree(nameInIndex, true)
+	formData, err := c.FileAsContent(nameInIndex, true)
 	if err != nil {
 		return "", "", err
 	}
 
-	formName, isManaged, err := formInfo(formData)
+	formName := formName(formData)
+
+	fileContent, err := c.FileAsContent(nameInIndex+".0", true)
 	if err != nil {
-		// return "", "", fmt.Errorf("find form data: %s", err.Error())
-		formName = nameInIndex
-		isManaged = false
-	} else {
-		formName = strings.Trim(formName, `"`)
+		return "", "", err
 	}
 
-	if !isManaged {
-		formContent, err := c.FileAsContent(nameInIndex+".0", true)
-		if err != nil {
-			return "", "", err
-		}
-		reader := NewBytesReader([]byte(formContent))
-		formContainer := ReadContainer(reader)
-		formModule, err := formContainer.FileAsContent("module", false)
-		if err != nil {
-			return "", "", err
-		}
+	formModule, ok, err := readModuleFromContainer(fileContent)
+	if err != nil {
+		return "", "", err
+	}
 
+	if ok {
 		return formName, formModule, nil
 	}
 
@@ -199,7 +192,7 @@ func (c *RootContainer) findFormData(nameInIndex string) (string, string, error)
 	if err != nil {
 		return "", "", err
 	}
-	formModule, err := formListTree.GetValue(2)
+	formModule, err = formListTree.GetValue(2)
 	if err != nil {
 		return "", "", err
 	}
@@ -301,22 +294,31 @@ func readIndex(reader Reader) fileIndex {
 	return index
 }
 
-func formInfo(list *ListTree) (string, bool, error) {
-	var isManaged bool
-
-	formName, err := list.GetValue(1, 1, 1, 1, 2)
-	if err != nil {
-		return "", false, fmt.Errorf("form info: %s", err.Error())
+func formName(data string) string {
+	re := regexp.MustCompile(`\{\d,[\d],(\w{8}-\w{4}-\w{4}-\w{4}-\w{12})\},"(\S+?)",\n?`)
+	found := re.FindStringSubmatch(data)
+	if found == nil {
+		return ""
 	}
 
-	isManagedStr, err := list.GetValue(1, 1, 1, 3)
-	if err != nil {
-		return "", false, fmt.Errorf("form info: %s", err.Error())
+	if len(found) < 3 {
+		return ""
 	}
 
-	if isManagedStr == "1" {
-		isManaged = true
+	return found[2]
+}
+
+func readModuleFromContainer(fileContent string) (string, bool, error) {
+	if binary.LittleEndian.Uint32([]byte(fileContent)[:4]) == intMax {
+		reader := NewBytesReader([]byte(fileContent))
+		formContainer := ReadContainer(reader)
+		formModule, err := formContainer.FileAsContent("module", false)
+		if err != nil {
+			return "", false, err
+		}
+
+		return formModule, true, nil
 	}
 
-	return formName, isManaged, nil
+	return "", false, nil
 }
