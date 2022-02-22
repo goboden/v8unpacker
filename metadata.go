@@ -6,21 +6,32 @@ import (
 	"strings"
 )
 
+type metaType int
+
 const (
-	idExtProcedure  = "c3831ec8-d8d5-4f93-8a22-f9bfae07327f"
-	idExtReport     = "e41aff26-25cf-4bb6-b6c1-3f478a75f374"
-	idConfiguration = "9cd510cd-abfc-11d4-9434-004095e12fc7" // ?
-
-	extProcAttributes = "ec6bb5e5-b7a8-4d75-bec9-658107a699cf"
-	extProcTables     = "2bcef0d1-0981-11d6-b9b8-0050bae0a95d"
-	extProcForms      = "d5b0e5ed-256d-401c-9c36-f630cafd8a62"
-	extProcTemplates  = "3daea016-69b7-4ed4-9453-127911372fe6"
-
-	extReptAttributes = "7e7123e0-29e2-11d6-a3c7-0050bae0a776"
-	extReptTables     = "b077d780-29e2-11d6-a3c7-0050bae0a776"
-	extReptForms      = "a3b368c0-29e2-11d6-a3c7-0050bae0a776"
-	extReptTemplates  = "3daea016-69b7-4ed4-9453-127911372fe6"
+	mdtAttributes metaType = iota
+	mdtTables
+	mdtForms
+	mdtTemplates
 )
+
+var metadata = map[string]map[metaType]string{
+	"c3831ec8-d8d5-4f93-8a22-f9bfae07327f": // ExtProc
+	{
+		mdtAttributes: "ec6bb5e5-b7a8-4d75-bec9-658107a699cf",
+		mdtTables:     "2bcef0d1-0981-11d6-b9b8-0050bae0a95d",
+		mdtForms:      "d5b0e5ed-256d-401c-9c36-f630cafd8a62",
+		mdtTemplates:  "3daea016-69b7-4ed4-9453-127911372fe6",
+	},
+	"e41aff26-25cf-4bb6-b6c1-3f478a75f374": // ExtRep
+	{
+		mdtAttributes: "7e7123e0-29e2-11d6-a3c7-0050bae0a776",
+		mdtTables:     "b077d780-29e2-11d6-a3c7-0050bae0a776",
+		mdtForms:      "a3b368c0-29e2-11d6-a3c7-0050bae0a776",
+		mdtTemplates:  "3daea016-69b7-4ed4-9453-127911372fe6"},
+	"9cd510cd-abfc-11d4-9434-004095e12fc7":// Configuration
+	{},
+}
 
 type ListTree struct {
 	value    string
@@ -184,11 +195,11 @@ func nextDelimeter(data string) int {
 		for i := 1; i < len(data); i++ {
 			if data[i] == '"' {
 				if len(data)-i > 4 && data[i+1] == '"' && data[i+2] == '"' && data[i+3] == '"' {
-					i += 4
+					i += 3
 					continue
 				}
 				if len(data)-i > 2 && data[i+1] == '"' {
-					i += 2
+					i += 1
 					continue
 				}
 				return i + 1
