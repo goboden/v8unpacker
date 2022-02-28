@@ -58,27 +58,28 @@ func readBlock(reader Reader, begin v8address) (*v8blockHeader, []byte) {
 	return blockHeader, data
 }
 
-func readContent(reader Reader, begin v8address, deflate bool) string {
-	var content string
+func readContent(reader Reader, begin v8address, defl bool) []byte {
 	data := readDocument(reader, begin)
 
-	if deflate {
-		reader := flate.NewReader(bytes.NewReader(data))
-		buffer := make([]byte, 1024)
-		out := make([]byte, 0)
-
-		for {
-			n, _ := reader.Read(buffer)
-			if n < len(buffer) {
-				out = append(out, buffer[:n]...)
-				break
-			}
-			out = append(out, buffer...)
-		}
-		content = string(out)
-	} else {
-		content = string(data)
+	if defl {
+		return deflate(data)
 	}
 
-	return content
+	return data
+}
+
+func deflate(data []byte) []byte {
+	reader := flate.NewReader(bytes.NewReader(data))
+	buffer := make([]byte, 1024)
+	out := make([]byte, 0)
+
+	for {
+		n, _ := reader.Read(buffer)
+		if n < len(buffer) {
+			out = append(out, buffer[:n]...)
+			break
+		}
+		out = append(out, buffer...)
+	}
+	return out
 }

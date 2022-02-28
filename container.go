@@ -24,32 +24,116 @@ type RootContainer struct {
 	metadataID string
 }
 
-func (c *Container) FileAsContent(name string, deflate bool) (string, error) {
+func (c *Container) ReadFile(name string, deflate bool) (*File, error) {
 	address, ok := c.index[name]
 	if !ok {
-		return "", fmt.Errorf("file %s not found in index", name)
+		return nil, fmt.Errorf("file %s not found in index", name)
 	}
 
-	content := readContent(c.reader, address, deflate)
+	data := readContent(c.reader, address, deflate)
+	isContainer := binary.LittleEndian.Uint32(data[:4]) == intMax
+	file := &File{Name: name, Data: data, IsContainer: isContainer}
 
-	return content, nil
-}
-
-func (c *Container) FileAsListTree(name string, deflate bool) (*ListTree, error) {
-	content, err := c.FileAsContent(name, deflate)
-	if err != nil {
-		return nil, err
-	}
-	list, err := NewListTree().Load(content)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
-	return list, nil
+	return file, nil
 }
 
 func (c *Container) GetIndex() fileIndex {
 	return c.index
+}
+
+func (c *Container) InIndex(name string) bool {
+	_, ok := c.index[name]
+	return ok
+}
+
+func (c *RootContainer) ReadFormNames() ([]string, error) {
+	formsID, ok := metadata[c.metadataID][mdtForms]
+	if !ok {
+		return nil, fmt.Errorf("forms id not found, metadata id: %s", c.metadataID)
+	}
+
+	intList, err := c.Metadata.Get(3, 1)
+	if err != nil {
+		return nil, fmt.Errorf("find forms section: %s", err.Error())
+	}
+
+	if intList.isValue {
+		return nil, fmt.Errorf("find forms section: wrong metadata format")
+	}
+
+	for i := 0; i < intList.Length(); i++ {
+		sect, err := intList.Get(i)
+		if err != nil {
+			return nil, fmt.Errorf("find forms section: %s", err.Error())
+		}
+
+		if sect.isValue {
+			continue
+		}
+
+		if val, err := sect.GetValue(0); err == nil && val == formsID {
+			forms := make([]string, 0)
+
+			for n := 2; n < sect.Length(); n++ {
+				name, err := sect.GetValue(n)
+				if err != nil {
+					break
+				}
+
+				forms = append(forms, name)
+			}
+
+			return forms, nil
+		}
+	}
+
+	return nil, fmt.Errorf("find forms section: not found")
+}
+
+func (c *RootContainer) ReadForm(filename string) (*Form, error) {
+	_, ok := c.index[filename]
+	if !ok {
+		return nil, fmt.Errorf("file %s not found in index", filename)
+	}
+
+	file, err := c.ReadFile(filename, true)
+	if err != nil {
+		return nil, err
+	}
+
+	file0, err := c.ReadFile(filename+".0", true)
+	if err != nil {
+		return nil, err
+	}
+
+	form := &Form{DescriptionFile: file, MainFile: file0}
+	form.Read()
+
+	return form, nil
+}
+
+func (c *RootContainer) ReadObjectModule() (string, error) {
+	filename, err := c.Metadata.GetValue(3, 1, 1, 3, 1, 1, 2)
+	if err != nil {
+		return "", fmt.Errorf("find object module: %s", err.Error())
+	}
+
+	filename += ".0"
+	if !c.InIndex(filename) {
+		return "", nil
+	}
+
+	file, err := c.ReadFile(filename, true)
+	if err != nil {
+		return "", err
+	}
+
+	module, err := ObjectModuleText(file)
+	if err != nil {
+		return "", err
+	}
+
+	return module, nil
 }
 
 func ReadContainer(reader Reader) *Container {
@@ -69,7 +153,12 @@ func ReadRootContainer(reader Reader) *RootContainer {
 	cont.header = readHeader(reader)
 	cont.index = readIndex(reader)
 
-	rootList, err := cont.FileAsListTree("root", true)
+	root, err := cont.ReadFile("root", true)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	rootList, err := root.AsListTree()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -78,7 +167,13 @@ func ReadRootContainer(reader Reader) *RootContainer {
 	if err != nil {
 		log.Fatal(err)
 	}
-	metadata, err := cont.FileAsListTree(metaFileName, true)
+
+	metaFile, err := cont.ReadFile(metaFileName, true)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	metadata, err := metaFile.AsListTree()
 	if err != nil {
 		log.Fatal(err)
 	}
